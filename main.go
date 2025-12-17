@@ -33,9 +33,15 @@ func main() {
 	model := newModel(contexts)
 
 	p := tea.NewProgram(model)
-	if _, err := p.Run(); err != nil {
+	finalModel, err := p.Run()
+	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
+	}
+
+	m := finalModel.(Model)
+	if m.SelectedPath != "" {
+		fmt.Print(m.SelectedPath)
 	}
 }
 
@@ -163,8 +169,9 @@ type Context struct {
 }
 
 type Model struct {
-	Contexts []Context
-	Cursor   int
+	Contexts     []Context
+	Cursor       int
+	SelectedPath string
 }
 
 func newModel(contexts []Context) Model {
@@ -180,10 +187,30 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+
 	case tea.KeyMsg:
 		switch msg.Type {
-		case tea.KeyCtrlC:
+
+		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
+
+		case tea.KeyEnter:
+			if len(m.Contexts) > 0 {
+				m.SelectedPath = m.Contexts[m.Cursor].Path
+			}
+			return m, tea.Quit
+
+		case tea.KeyRunes:
+			switch string(msg.Runes) {
+			case "j":
+				if m.Cursor < len(m.Contexts)-1 {
+					m.Cursor++
+				}
+			case "k":
+				if m.Cursor > 0 {
+					m.Cursor--
+				}
+			}
 		}
 	}
 
