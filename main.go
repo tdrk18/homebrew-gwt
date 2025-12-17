@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -20,9 +21,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	cwd, err := getInitialCWD()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
+	}
+
+	contexts := buildContexts(worktrees, cwd)
+
 	// 確認用（あとで消す）
-	for _, wt := range worktrees {
-		fmt.Fprintf(os.Stderr, "%+v\n", wt)
+	for _, ctx := range contexts {
+		fmt.Fprintf(os.Stderr, "%+v\n", ctx)
 	}
 }
 
@@ -89,8 +98,53 @@ func listWorktrees() ([]Worktree, error) {
 	return result, nil
 }
 
+func getInitialCWD() (string, error) {
+	if cwd := os.Getenv("WT_CWD"); cwd != "" {
+		return cwd, nil
+	}
+	return os.Getwd()
+}
+
+func buildContexts(
+	worktrees []Worktree,
+	currentCWD string,
+) []Context {
+	var contexts []Context
+
+	for _, wt := range worktrees {
+		isCurrent := samePath(wt.Path, currentCWD)
+
+		contexts = append(contexts, Context{
+			Path:       wt.Path,
+			Branch:     wt.Branch,
+			IsDetached: wt.IsDetached,
+			IsCurrent:  isCurrent,
+		})
+	}
+
+	return contexts
+}
+
+func samePath(a, b string) bool {
+	ap, err1 := filepath.EvalSymlinks(a)
+	bp, err2 := filepath.EvalSymlinks(b)
+
+	if err1 != nil || err2 != nil {
+		return false
+	}
+
+	return ap == bp
+}
+
 type Worktree struct {
 	Path       string
 	Branch     string // empty if detached
 	IsDetached bool
+}
+
+type Context struct {
+	Path       string
+	Branch     string
+	IsDetached bool
+	IsCurrent  bool
 }
