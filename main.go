@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func main() {
@@ -28,10 +30,12 @@ func main() {
 	}
 
 	contexts := buildContexts(worktrees, cwd)
+	model := newModel(contexts)
 
-	// 確認用（あとで消す）
-	for _, ctx := range contexts {
-		fmt.Fprintf(os.Stderr, "%+v\n", ctx)
+	p := tea.NewProgram(model)
+	if _, err := p.Run(); err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
 	}
 }
 
@@ -136,6 +140,15 @@ func samePath(a, b string) bool {
 	return ap == bp
 }
 
+func initialCursor(contexts []Context) int {
+	for i, ctx := range contexts {
+		if ctx.IsCurrent {
+			return i
+		}
+	}
+	return 0
+}
+
 type Worktree struct {
 	Path       string
 	Branch     string // empty if detached
@@ -147,4 +160,53 @@ type Context struct {
 	Branch     string
 	IsDetached bool
 	IsCurrent  bool
+}
+
+type Model struct {
+	Contexts []Context
+	Cursor   int
+}
+
+func newModel(contexts []Context) Model {
+	return Model{
+		Contexts: contexts,
+		Cursor:   initialCursor(contexts),
+	}
+}
+
+func (m Model) Init() tea.Cmd {
+	return nil
+}
+
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyCtrlC:
+			return m, tea.Quit
+		}
+	}
+
+	return m, nil
+}
+
+func (m Model) View() string {
+	var b strings.Builder
+
+	for i, ctx := range m.Contexts {
+		prefix := "  "
+		if ctx.IsCurrent {
+			prefix = "> "
+		}
+
+		line := fmt.Sprintf("%s%s", prefix, ctx.Path)
+		if i == m.Cursor {
+			line = "[" + line + "]"
+		}
+
+		b.WriteString(line)
+		b.WriteString("\n")
+	}
+
+	return b.String()
 }
