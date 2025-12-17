@@ -1,0 +1,43 @@
+# =========================
+# Go build artifacts
+# =========================
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# CLI local build output
+/bin/
+
+# Coverage
+coverage.out
+*.coverprofile
+
+# =========================
+# Go workspace
+# =========================
+go.work
+go.work.sum
+
+# =========================
+# Logs / temp
+# =========================
+*.log
+tmp/
+temp/
+
+# =========================
+# Environment variables
+# =========================
+.env
+.env.*
+
+# =========================
+# IDE / OS
+# =========================
+.vscode/
+.idea/
+.DS_Store
