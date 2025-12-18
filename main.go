@@ -174,10 +174,50 @@ func refreshCmd(contexts []Context) tea.Cmd {
 	}
 }
 
+func addWorktree(branch string) error {
+	_ = os.MkdirAll(".worktree", 0755)
+
+	wtPath := filepath.Join(".worktree", branch)
+
+	args := []string{"worktree", "add"}
+	if !branchExists(branch) {
+		args = append(args, "-b")
+	}
+	args = append(args, branch, wtPath)
+
+	cmd := exec.Command("git", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
+}
+
+func branchExists(branch string) bool {
+	cmd := exec.Command(
+		"git",
+		"show-ref",
+		"--verify",
+		"--quiet",
+		"refs/heads/"+branch,
+	)
+	return cmd.Run() == nil
+}
+
+func addWorktreeCmd(branch string) tea.Cmd {
+	return func() tea.Msg {
+		_ = addWorktree(branch)
+		return addWorktreeMsg{Branch: branch}
+	}
+}
+
 type Worktree struct {
 	Path       string
 	Branch     string // empty if detached
 	IsDetached bool
+}
+
+type addWorktreeMsg struct {
+	Branch string
 }
 
 type Context struct {
@@ -228,8 +268,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 
 			case tea.KeyEnter:
-				// 次ステップで実装
+				branch := strings.TrimSpace(m.InputText)
 				m.InputMode = InputNone
+				m.InputText = ""
+
+				if branch != "" {
+					return m, tea.Sequence(
+						addWorktreeCmd(branch),
+						tea.Quit,
+					)
+				}
+
 				return m, nil
 
 			case tea.KeyBackspace:
@@ -240,6 +289,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case tea.KeyRunes:
 				m.InputText += string(msg.Runes)
 			}
+
+		case addWorktreeMsg:
+			return m, nil
 		}
 		return m, nil
 	}
