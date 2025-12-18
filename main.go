@@ -246,6 +246,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) View() string {
 	var b strings.Builder
 
+	b.WriteString(
+		"j/k: move  enter: cd  r: refresh  esc: quit   > current  * dirty  ~ detached\n\n",
+	)
+
 	for i, ctx := range m.Contexts {
 		current := " "
 		if ctx.IsCurrent {
@@ -257,15 +261,21 @@ func (m Model) View() string {
 			dirty = "*"
 		}
 
+		detached := " "
+		if ctx.IsDetached {
+			detached = "~"
+		}
+
 		line := fmt.Sprintf(
-			"%s%s %s",
+			"%s %s %s %s",
 			current,
 			dirty,
+			detached,
 			ctx.Path,
 		)
 
 		if i == m.Cursor {
-			line = "[" + line + "]"
+			line = "[ " + line + " ]"
 		}
 
 		b.WriteString(line)
