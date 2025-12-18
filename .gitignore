@@ -41,3 +41,8 @@ temp/
 .vscode/
 .idea/
 .DS_Store
+
+# =========================
+# git worktree
+# =========================
+.worktree
