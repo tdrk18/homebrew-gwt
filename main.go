@@ -210,6 +210,39 @@ func addWorktreeCmd(branch string) tea.Cmd {
 	}
 }
 
+func removeWorktree(ctx Context) error {
+	cmd1 := exec.Command(
+		"git",
+		"worktree",
+		"remove",
+		ctx.Path,
+	)
+	cmd1.Stdout = os.Stdout
+	cmd1.Stderr = os.Stderr
+	_ = cmd1.Run()
+
+	if ctx.Branch != "" && !ctx.IsDetached {
+		cmd2 := exec.Command(
+			"git",
+			"branch",
+			"-d",
+			ctx.Branch,
+		)
+		cmd2.Stdout = os.Stdout
+		cmd2.Stderr = os.Stderr
+		_ = cmd2.Run()
+	}
+
+	return nil
+}
+
+func removeWorktreeCmd(ctx Context) tea.Cmd {
+	return func() tea.Msg {
+		_ = removeWorktree(ctx)
+		return removeWorktreeMsg{}
+	}
+}
+
 type Worktree struct {
 	Path       string
 	Branch     string // empty if detached
@@ -219,6 +252,8 @@ type Worktree struct {
 type addWorktreeMsg struct {
 	Branch string
 }
+
+type removeWorktreeMsg struct{}
 
 type Context struct {
 	Path       string
@@ -233,6 +268,7 @@ type InputMode int
 const (
 	InputNone InputMode = iota
 	InputNewBranch
+	InputConfirmDelete
 )
 
 type Model struct {
@@ -240,8 +276,9 @@ type Model struct {
 	Cursor       int
 	SelectedPath string
 
-	InputMode InputMode
-	InputText string
+	InputMode   InputMode
+	InputText   string
+	DeleteIndex int
 }
 
 func newModel(contexts []Context) Model {
@@ -256,6 +293,33 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if m.InputMode == InputConfirmDelete {
+		switch msg := msg.(type) {
+
+		case tea.KeyMsg:
+			switch string(msg.Runes) {
+
+			case "y":
+				ctx := m.Contexts[m.DeleteIndex]
+				m.InputMode = InputNone
+
+				return m, tea.Sequence(
+					removeWorktreeCmd(ctx),
+					tea.Quit,
+				)
+
+			case "n":
+				m.InputMode = InputNone
+				return m, nil
+
+			case string(tea.KeyEsc):
+				m.InputMode = InputNone
+				return m, nil
+			}
+		}
+		return m, nil
+	}
+
 	if m.InputMode == InputNewBranch {
 		switch msg := msg.(type) {
 
@@ -327,6 +391,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.InputMode = InputNewBranch
 					m.InputText = ""
 				}
+			case "d":
+				ctx := m.Contexts[m.Cursor]
+				if ctx.IsCurrent {
+					return m, nil // current は削除禁止
+				}
+
+				m.InputMode = InputConfirmDelete
+				m.DeleteIndex = m.Cursor
+				return m, nil
 			}
 		}
 
@@ -347,6 +420,11 @@ func (m Model) View() string {
 
 	if m.InputMode == InputNewBranch {
 		b.WriteString(fmt.Sprintf("new branch: %s\n", m.InputText))
+	} else if m.InputMode == InputConfirmDelete {
+		ctx := m.Contexts[m.DeleteIndex]
+		b.WriteString(
+			fmt.Sprintf("delete %s (%s)? y/n\n", ctx.Path, ctx.Branch),
+		)
 	} else {
 		b.WriteString("\n")
 	}
