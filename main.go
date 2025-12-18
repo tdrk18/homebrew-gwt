@@ -188,10 +188,20 @@ type Context struct {
 	IsDirty    bool
 }
 
+type InputMode int
+
+const (
+	InputNone InputMode = iota
+	InputNewBranch
+)
+
 type Model struct {
 	Contexts     []Context
 	Cursor       int
 	SelectedPath string
+
+	InputMode InputMode
+	InputText string
 }
 
 func newModel(contexts []Context) Model {
@@ -206,6 +216,34 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if m.InputMode == InputNewBranch {
+		switch msg := msg.(type) {
+
+		case tea.KeyMsg:
+			switch msg.Type {
+
+			case tea.KeyEsc:
+				m.InputMode = InputNone
+				m.InputText = ""
+				return m, nil
+
+			case tea.KeyEnter:
+				// 次ステップで実装
+				m.InputMode = InputNone
+				return m, nil
+
+			case tea.KeyBackspace:
+				if len(m.InputText) > 0 {
+					m.InputText = m.InputText[:len(m.InputText)-1]
+				}
+
+			case tea.KeyRunes:
+				m.InputText += string(msg.Runes)
+			}
+		}
+		return m, nil
+	}
+
 	switch msg := msg.(type) {
 
 	case tea.KeyMsg:
@@ -232,6 +270,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			case "r":
 				return m, refreshCmd(m.Contexts)
+			case "n":
+				if m.InputMode == InputNone {
+					m.InputMode = InputNewBranch
+					m.InputText = ""
+				}
 			}
 		}
 
@@ -247,8 +290,14 @@ func (m Model) View() string {
 	var b strings.Builder
 
 	b.WriteString(
-		"j/k: move  enter: cd  r: refresh  esc: quit   > current  * dirty  ~ detached\n\n",
+		"j/k: move  enter: cd  n: new  r: refresh  esc: quit   > current  * dirty  ~ detached\n",
 	)
+
+	if m.InputMode == InputNewBranch {
+		b.WriteString(fmt.Sprintf("new branch: %s\n", m.InputText))
+	} else {
+		b.WriteString("\n")
+	}
 
 	for i, ctx := range m.Contexts {
 		current := " "
