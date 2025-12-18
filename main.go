@@ -129,6 +129,7 @@ func buildContexts(
 			Branch:     wt.Branch,
 			IsDetached: wt.IsDetached,
 			IsCurrent:  isCurrent,
+			IsDirty:    isWorktreeDirty(wt.Path),
 		})
 	}
 
@@ -155,6 +156,15 @@ func initialCursor(contexts []Context) int {
 	return 0
 }
 
+func isWorktreeDirty(path string) bool {
+	cmd := exec.Command("git", "-C", path, "status", "--porcelain")
+	out, err := cmd.Output()
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(string(out)) != ""
+}
+
 type Worktree struct {
 	Path       string
 	Branch     string // empty if detached
@@ -166,6 +176,7 @@ type Context struct {
 	Branch     string
 	IsDetached bool
 	IsCurrent  bool
+	IsDirty    bool
 }
 
 type Model struct {
@@ -221,12 +232,23 @@ func (m Model) View() string {
 	var b strings.Builder
 
 	for i, ctx := range m.Contexts {
-		prefix := "  "
+		current := " "
 		if ctx.IsCurrent {
-			prefix = "> "
+			current = ">"
 		}
 
-		line := fmt.Sprintf("%s%s", prefix, ctx.Path)
+		dirty := " "
+		if ctx.IsDirty {
+			dirty = "*"
+		}
+
+		line := fmt.Sprintf(
+			"%s%s %s",
+			current,
+			dirty,
+			ctx.Path,
+		)
+
 		if i == m.Cursor {
 			line = "[" + line + "]"
 		}
