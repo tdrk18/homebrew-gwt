@@ -165,6 +165,15 @@ func isWorktreeDirty(path string) bool {
 	return strings.TrimSpace(string(out)) != ""
 }
 
+func refreshCmd(contexts []Context) tea.Cmd {
+	return func() tea.Msg {
+		for i := range contexts {
+			contexts[i].IsDirty = isWorktreeDirty(contexts[i].Path)
+		}
+		return contexts
+	}
+}
+
 type Worktree struct {
 	Path       string
 	Branch     string // empty if detached
@@ -221,8 +230,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.Cursor > 0 {
 					m.Cursor--
 				}
+			case "r":
+				return m, refreshCmd(m.Contexts)
 			}
 		}
+
+	case []Context:
+		m.Contexts = msg
+		return m, nil
 	}
 
 	return m, nil
