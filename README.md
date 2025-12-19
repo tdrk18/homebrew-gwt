@@ -1,64 +1,79 @@
-# wt
+# gwt
 
-自分用の git worktree TUI ラッパー。
+gwt is a personal TUI helper for managing `git worktree`.
 
-`git worktree` の煩雑な操作を、  
-**一覧 → 選択 → cd** だけで完結させる。
+It provides a simple interactive interface to:
+- list existing worktrees
+- switch between them
+- create or delete worktrees safely
+
+`gwt` is designed to be used via shell integration.
 
 ---
 
-## 使い方
+## Requirements
+
+- git (with worktree support)
+- zsh or bash
+
+---
+
+## Setup
+
+Clone this repository and source the shell integration script.
+
+### zsh
+
+```sh
+source /path/to/gwt/shell/gwt.zsh
+````
+
+### bash
+
+```sh
+source /path/to/gwt/shell/gwt.bash
+```
+
+Make sure `gwt-bin` is available in your PATH.
+
+---
+
+## Usage
 
 ```sh
 gwt
-````
+```
 
-### キー操作
+This launches a TUI to select or manage git worktrees.
 
-* `j / k` : 移動（vim key）
-* `Enter` : 選択した worktree に移動
-* `n` : 新しい worktree を作成
-* `d` : worktree + branch を削除
-* `Esc` / `Ctrl+C` : 終了
+After selecting a worktree, your shell will `cd` into it automatically.
 
 ---
 
-## 仕組み
+## Notes
 
-* TUI は **stderr** に描画
-* 選択結果（path）は **stdout** に出力
-* shell function 側で `cd` を行う
+* `gwt-bin` is an internal command used by the `gwt` shell function.
+  You normally do not need to run it directly.
+* Errors are printed to stderr. The selected path is printed to stdout.
+
+You can check internal usage with:
 
 ```sh
-gwt() {
-  local out
-  out="$(gwt-bin)" || return
-  [ -n "$out" ] && cd "$out"
-}
+gwt-bin --help
 ```
 
 ---
 
-## 表示ルール
+## Design Philosophy
 
-* `>` : カーソル
-* `*` : current worktree
-* `!` : dirty
-* `@` : detached HEAD
-* path は repo root からの相対パス
-
----
-
-## 設計方針
-
-* 自分のみを想定
-* 再描画しない（操作後は終了）
-* 安全第一（壊れないことを優先）
-* 余計な機能は足さない
+* Shell-first (no `cd` inside binaries)
+* Minimal output
+* Safe defaults
+* Personal workflow focused
 
 ---
 
-## 注意
+## Status
 
-* git repository 内で実行すること
-* bash / zsh を想定
+This is a personal tool.
+The interface and behavior may change without notice.
