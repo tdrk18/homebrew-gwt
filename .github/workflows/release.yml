@@ -43,6 +43,7 @@ jobs:
           gh release create "${TAG}" \
             "gwt-${TAG}.tar.gz" \
             --title "${TAG}" \
+            --draft \
             --generate-notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
