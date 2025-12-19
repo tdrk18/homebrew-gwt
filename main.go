@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -186,10 +187,15 @@ func addWorktree(branch string) error {
 	args = append(args, branch, wtPath)
 
 	cmd := exec.Command("git", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 
-	return cmd.Run()
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf(strings.TrimSpace(stderr.String()))
+	}
+
+	return nil
 }
 
 func branchExists(branch string) bool {
@@ -205,32 +211,28 @@ func branchExists(branch string) bool {
 
 func addWorktreeCmd(branch string) tea.Cmd {
 	return func() tea.Msg {
-		_ = addWorktree(branch)
-		return addWorktreeMsg{Branch: branch}
+		if err := addWorktree(branch); err != nil {
+			return errorMsg{Err: err}
+		}
+		return nil
 	}
 }
 
 func removeWorktree(ctx Context) error {
-	cmd1 := exec.Command(
-		"git",
-		"worktree",
-		"remove",
-		ctx.Path,
-	)
-	cmd1.Stdout = os.Stdout
-	cmd1.Stderr = os.Stderr
-	_ = cmd1.Run()
+	var stderr bytes.Buffer
+
+	cmd1 := exec.Command("git", "worktree", "remove", ctx.Path)
+	cmd1.Stderr = &stderr
+	if err := cmd1.Run(); err != nil {
+		return fmt.Errorf(strings.TrimSpace(stderr.String()))
+	}
 
 	if ctx.Branch != "" && !ctx.IsDetached {
-		cmd2 := exec.Command(
-			"git",
-			"branch",
-			"-d",
-			ctx.Branch,
-		)
-		cmd2.Stdout = os.Stdout
-		cmd2.Stderr = os.Stderr
-		_ = cmd2.Run()
+		cmd2 := exec.Command("git", "branch", "-d", ctx.Branch)
+		cmd2.Stderr = &stderr
+		if err := cmd2.Run(); err != nil {
+			return fmt.Errorf(strings.TrimSpace(stderr.String()))
+		}
 	}
 
 	return nil
@@ -238,8 +240,10 @@ func removeWorktree(ctx Context) error {
 
 func removeWorktreeCmd(ctx Context) tea.Cmd {
 	return func() tea.Msg {
-		_ = removeWorktree(ctx)
-		return removeWorktreeMsg{}
+		if err := removeWorktree(ctx); err != nil {
+			return errorMsg{Err: err}
+		}
+		return nil
 	}
 }
 
@@ -271,6 +275,10 @@ const (
 	InputConfirmDelete
 )
 
+type errorMsg struct {
+	Err error
+}
+
 type Model struct {
 	Contexts     []Context
 	Cursor       int
@@ -279,6 +287,8 @@ type Model struct {
 	InputMode   InputMode
 	InputText   string
 	DeleteIndex int
+
+	Error string
 }
 
 func newModel(contexts []Context) Model {
@@ -293,33 +303,7 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if m.InputMode == InputConfirmDelete {
-		switch msg := msg.(type) {
-
-		case tea.KeyMsg:
-			switch string(msg.Runes) {
-
-			case "y":
-				ctx := m.Contexts[m.DeleteIndex]
-				m.InputMode = InputNone
-
-				return m, tea.Sequence(
-					removeWorktreeCmd(ctx),
-					tea.Quit,
-				)
-
-			case "n":
-				m.InputMode = InputNone
-				return m, nil
-
-			case string(tea.KeyEsc):
-				m.InputMode = InputNone
-				return m, nil
-			}
-		}
-		return m, nil
-	}
-
+	// --- Input mode: new branch ---
 	if m.InputMode == InputNewBranch {
 		switch msg := msg.(type) {
 
@@ -337,35 +321,64 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.InputText = ""
 
 				if branch != "" {
-					return m, tea.Sequence(
-						addWorktreeCmd(branch),
-						tea.Quit,
-					)
+					return m, addWorktreeCmd(branch)
 				}
-
 				return m, nil
 
 			case tea.KeyBackspace:
 				if len(m.InputText) > 0 {
 					m.InputText = m.InputText[:len(m.InputText)-1]
 				}
+				return m, nil
 
 			case tea.KeyRunes:
 				m.InputText += string(msg.Runes)
+				return m, nil
 			}
-
-		case addWorktreeMsg:
-			return m, nil
 		}
 		return m, nil
 	}
 
+	// --- Input mode: confirm delete ---
+	if m.InputMode == InputConfirmDelete {
+		switch msg := msg.(type) {
+
+		case tea.KeyMsg:
+			switch string(msg.Runes) {
+
+			case "y":
+				ctx := m.Contexts[m.DeleteIndex]
+				m.InputMode = InputNone
+				return m, removeWorktreeCmd(ctx)
+
+			case "n":
+				m.InputMode = InputNone
+				return m, nil
+			}
+
+			if msg.Type == tea.KeyEsc {
+				m.InputMode = InputNone
+				return m, nil
+			}
+		}
+		return m, nil
+	}
+
+	// --- Normal mode ---
 	switch msg := msg.(type) {
 
 	case tea.KeyMsg:
 		switch msg.Type {
 
-		case tea.KeyCtrlC, tea.KeyEsc:
+		case tea.KeyCtrlC:
+			return m, tea.Quit
+
+		case tea.KeyEsc:
+			// clear error if exists
+			if m.Error != "" {
+				m.Error = ""
+				return m, nil
+			}
 			return m, tea.Quit
 
 		case tea.KeyEnter:
@@ -376,35 +389,40 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case tea.KeyRunes:
 			switch string(msg.Runes) {
+
 			case "j":
 				if m.Cursor < len(m.Contexts)-1 {
 					m.Cursor++
 				}
+
 			case "k":
 				if m.Cursor > 0 {
 					m.Cursor--
 				}
+
 			case "r":
 				return m, refreshCmd(m.Contexts)
+
 			case "n":
-				if m.InputMode == InputNone {
-					m.InputMode = InputNewBranch
-					m.InputText = ""
-				}
+				m.InputMode = InputNewBranch
+				m.InputText = ""
+
 			case "d":
 				ctx := m.Contexts[m.Cursor]
 				if ctx.IsCurrent {
-					return m, nil // current は削除禁止
+					return m, nil
 				}
-
 				m.InputMode = InputConfirmDelete
 				m.DeleteIndex = m.Cursor
-				return m, nil
 			}
 		}
 
 	case []Context:
 		m.Contexts = msg
+		return m, nil
+
+	case errorMsg:
+		m.Error = msg.Err.Error()
 		return m, nil
 	}
 
@@ -418,7 +436,9 @@ func (m Model) View() string {
 		"j/k: move  enter: cd  n: new  r: refresh  esc: quit   > current  * dirty  ~ detached\n",
 	)
 
-	if m.InputMode == InputNewBranch {
+	if m.Error != "" {
+		b.WriteString(fmt.Sprintf("error: %s\n", m.Error))
+	} else if m.InputMode == InputNewBranch {
 		b.WriteString(fmt.Sprintf("new branch: %s\n", m.InputText))
 	} else if m.InputMode == InputConfirmDelete {
 		ctx := m.Contexts[m.DeleteIndex]
