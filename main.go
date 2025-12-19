@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 func main() {
@@ -284,6 +285,13 @@ type errorMsg struct {
 	Err error
 }
 
+var (
+	cursorStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("212"))
+	currentStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
+	dirtyStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
+	detachedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
+)
+
 type Model struct {
 	Contexts     []Context
 	Cursor       int
@@ -441,7 +449,7 @@ func (m Model) View() string {
 	var b strings.Builder
 
 	b.WriteString(
-		"j/k: move  enter: cd  n: new  r: refresh  esc: quit   > current  * dirty  ~ detached\n",
+		"j/k: move  enter: cd  n: new  r: refresh  esc: quit   * current  ! dirty  @ detached\n",
 	)
 
 	if m.Error != "" {
@@ -458,35 +466,46 @@ func (m Model) View() string {
 	}
 
 	for i, ctx := range m.Contexts {
-		current := " "
+		// cursor
+		cursor := "  "
+		if m.Cursor == i {
+			cursor = cursorStyle.Render("> ")
+		}
+
+		// current marker
+		current := "  "
 		if ctx.IsCurrent {
-			current = ">"
+			current = "* "
 		}
 
-		dirty := " "
-		if ctx.IsDirty {
-			dirty = "*"
+		status := "  "
+		if ctx.IsDetached && ctx.IsDirty {
+			status = detachedStyle.Render("@!")
+		} else if ctx.IsDetached {
+			status = detachedStyle.Render("@ ")
+		} else if ctx.IsDirty {
+			status = dirtyStyle.Render("! ")
 		}
 
-		detached := " "
+		branch := ctx.Branch
 		if ctx.IsDetached {
-			detached = "~"
+			branch = "(detached)"
 		}
 
 		line := fmt.Sprintf(
-			"%s %s %s %s",
+			"%s%s%-12s %s %s",
+			cursor,
 			current,
-			dirty,
-			detached,
+			branch,
+			status,
 			ctx.Path,
 		)
 
-		if i == m.Cursor {
-			line = "[ " + line + " ]"
+		if ctx.IsCurrent {
+			line = currentStyle.Render(line)
 		}
 
-		b.WriteString(line)
-		b.WriteString("\n")
+		b.WriteString(line + "\n")
 	}
 
 	return b.String()
