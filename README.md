@@ -10,7 +10,7 @@
 ## 使い方
 
 ```sh
-wt
+gwt
 ````
 
 ### キー操作
@@ -30,9 +30,9 @@ wt
 * shell function 側で `cd` を行う
 
 ```sh
-wt() {
+gwt() {
   local out
-  out="$(wt-bin)" || return
+  out="$(gwt-bin)" || return
   [ -n "$out" ] && cd "$out"
 }
 ```
