@@ -231,7 +231,7 @@ func removeWorktree(ctx Context) error {
 	}
 
 	if ctx.Branch != "" && !ctx.IsDetached {
-		cmd2 := exec.Command("git", "branch", "-d", ctx.Branch)
+		cmd2 := exec.Command("git", "branch", "-D", ctx.Branch)
 		cmd2.Stderr = &stderr
 		if err := cmd2.Run(); err != nil {
 			return fmt.Errorf(strings.TrimSpace(stderr.String()))
