@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: read
+
 jobs:
   update-formula:
     runs-on: ubuntu-latest
@@ -16,6 +19,8 @@ jobs:
         run: |
           TAG=${GITHUB_REF_NAME#refs/tags/}
           gh release download $TAG --pattern "gwt-${TAG}.tar.gz"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Compute sha256
         id: sha
