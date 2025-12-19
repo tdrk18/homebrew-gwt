@@ -33,7 +33,10 @@ func main() {
 	contexts := buildContexts(worktrees, cwd)
 	model := newModel(contexts)
 
-	p := tea.NewProgram(model)
+	p := tea.NewProgram(
+		model,
+		tea.WithOutput(os.Stderr),
+	)
 	finalModel, err := p.Run()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
