@@ -2,7 +2,7 @@ gwt() {
   local out
   local exit_code
 
-  out="$(./bin/wt-bin)"
+  out="$(gwt-bin)"
   exit_code=$?
 
   if [ $exit_code -ne 0 ] || [ -z "$out" ]; then
