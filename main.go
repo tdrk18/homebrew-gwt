@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,6 +14,29 @@ import (
 )
 
 func main() {
+	var (
+		showHelp    bool
+		showVersion bool
+	)
+
+	flag.BoolVar(&showHelp, "help", false, "show help")
+	flag.BoolVar(&showHelp, "h", false, "show help (shorthand)")
+	flag.BoolVar(&showVersion, "version", false, "show version")
+
+	// flag.Parse() は TUI より前！
+	flag.Parse()
+
+	if showHelp {
+		printHelp()
+		os.Exit(0)
+	}
+
+	if showVersion {
+		fmt.Printf("%s %s\n", AppName, AppVersion)
+		os.Exit(0)
+	}
+
+	// TUI
 	repoRoot, err := detectRepoRoot()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
@@ -48,6 +72,28 @@ func main() {
 	if m.SelectedPath != "" {
 		fmt.Print(m.SelectedPath)
 	}
+}
+
+const (
+	AppName    = "gwt-bin"
+	AppVersion = "0.1.0" // 後で ldflags で差し替え可
+)
+
+func printHelp() {
+	fmt.Println(`gwt-bin is an internal command for gwt.
+
+This command launches a TUI to select a git worktree and prints
+the selected path to stdout.
+
+Normally, you should NOT run this command directly.
+Instead, use the shell function:
+
+  gwt
+
+Setup example (zsh):
+
+  source ./shell/gwt.zsh
+`)
 }
 
 func detectRepoRoot() (string, error) {
