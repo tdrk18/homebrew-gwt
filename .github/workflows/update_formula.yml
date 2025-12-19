@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   update-formula:
@@ -37,14 +38,22 @@ jobs:
           sed -i'' -e "s|url \".*\"|url \"https://github.com/you/gwt/releases/download/${TAG}/gwt-${TAG}.tar.gz\"|" $FORMULA
           sed -i'' -e "s|sha256 \".*\"|sha256 \"$SHA\"|" $FORMULA
 
-      - name: Commit and push
+      - name: Commit and create PR
         run: |
           TAG=${GITHUB_REF_NAME#refs/tags/}
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          BRANCH="update-formula-${TAG}"
+          git switch -c "${BRANCH}"
           git add Formula/gwt.rb
           git commit -m "Update gwt.rb for ${TAG}" || echo "No changes"
-          git push origin main
+          gh pr create \
+            --title "Update gwt.rb for ${TAG}" \
+            --body "Automated update of gwt formula for release ${TAG}" \
+            --head "${BRANCH}" \
+            --base "main"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Audit Formula
         run: brew audit --strict Formula/gwt.rb || true
