@@ -214,7 +214,7 @@ func addWorktreeCmd(branch string) tea.Cmd {
 		if err := addWorktree(branch); err != nil {
 			return errorMsg{Err: err}
 		}
-		return nil
+		return successMsg{}
 	}
 }
 
@@ -243,7 +243,7 @@ func removeWorktreeCmd(ctx Context) tea.Cmd {
 		if err := removeWorktree(ctx); err != nil {
 			return errorMsg{Err: err}
 		}
-		return nil
+		return successMsg{}
 	}
 }
 
@@ -274,6 +274,8 @@ const (
 	InputNewBranch
 	InputConfirmDelete
 )
+
+type successMsg struct{}
 
 type errorMsg struct {
 	Err error
@@ -420,6 +422,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case []Context:
 		m.Contexts = msg
 		return m, nil
+
+	case successMsg:
+		return m, tea.Quit
 
 	case errorMsg:
 		m.Error = msg.Err.Error()
