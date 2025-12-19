@@ -1,0 +1,45 @@
+name: Update Formula
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-formula:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout tap repo
+        uses: actions/checkout@v4
+
+      - name: Download gwt release tar.gz
+        run: |
+          TAG=${GITHUB_REF_NAME#refs/tags/}
+          gh release download $TAG --pattern "gwt-${TAG}.tar.gz"
+
+      - name: Compute sha256
+        id: sha
+        run: |
+          TAG=${GITHUB_REF_NAME#refs/tags/}
+          SHA256=$(shasum -a 256 gwt-${TAG}.tar.gz | awk '{print $1}')
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+
+      - name: Update gwt.rb
+        run: |
+          FORMULA="Formula/gwt.rb"
+          TAG=${GITHUB_REF_NAME#refs/tags/}
+          SHA=${{ steps.sha.outputs.sha256 }}
+          sed -i'' -e "s|url \".*\"|url \"https://github.com/you/gwt/releases/download/${TAG}/gwt-${TAG}.tar.gz\"|" $FORMULA
+          sed -i'' -e "s|sha256 \".*\"|sha256 \"$SHA\"|" $FORMULA
+
+      - name: Commit and push
+        run: |
+          TAG=${GITHUB_REF_NAME#refs/tags/}
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/gwt.rb
+          git commit -m "Update gwt.rb for ${TAG}" || echo "No changes"
+          git push origin main
+
+      - name: Audit Formula
+        run: brew audit --strict Formula/gwt.rb || true
