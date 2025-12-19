@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	_, err := detectRepoRoot()
+	repoRoot, err := detectRepoRoot()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
@@ -31,7 +31,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	contexts := buildContexts(worktrees, cwd)
+	contexts := buildContexts(worktrees, cwd, repoRoot)
 	model := newModel(contexts)
 
 	p := tea.NewProgram(
@@ -58,6 +58,14 @@ func detectRepoRoot() (string, error) {
 	}
 
 	return strings.TrimSpace(string(output)), nil
+}
+
+func relativePath(root, path string) string {
+	rel, err := filepath.Rel(root, path)
+	if err != nil {
+		return path // フォールバック
+	}
+	return rel
 }
 
 func listWorktrees() ([]Worktree, error) {
@@ -123,6 +131,7 @@ func getInitialCWD() (string, error) {
 func buildContexts(
 	worktrees []Worktree,
 	currentCWD string,
+	repoRoot string,
 ) []Context {
 	var contexts []Context
 
@@ -130,11 +139,12 @@ func buildContexts(
 		isCurrent := samePath(wt.Path, currentCWD)
 
 		contexts = append(contexts, Context{
-			Path:       wt.Path,
-			Branch:     wt.Branch,
-			IsDetached: wt.IsDetached,
-			IsCurrent:  isCurrent,
-			IsDirty:    isWorktreeDirty(wt.Path),
+			Path:        wt.Path,
+			DisplayPath: relativePath(repoRoot, wt.Path),
+			Branch:      wt.Branch,
+			IsDetached:  wt.IsDetached,
+			IsCurrent:   isCurrent,
+			IsDirty:     isWorktreeDirty(wt.Path),
 		})
 	}
 
@@ -264,7 +274,9 @@ type addWorktreeMsg struct {
 type removeWorktreeMsg struct{}
 
 type Context struct {
-	Path       string
+	Path        string
+	DisplayPath string
+
 	Branch     string
 	IsDetached bool
 	IsCurrent  bool
@@ -498,7 +510,7 @@ func (m Model) View() string {
 			current,
 			branch,
 			status,
-			ctx.Path,
+			ctx.DisplayPath,
 		)
 
 		if ctx.IsCurrent {
