@@ -18,9 +18,18 @@ It provides a simple interactive interface to:
 
 ---
 
+## Installation
+
+Install via Homebrew:
+
+```shell
+brew tap tdrk18/gwt 
+brew install tdrk18/gwt/gwt
+```
+
 ## Setup
 
-Clone this repository and source the shell integration script.
+Add one of the following lines to your shell config:
 
 ### zsh
 
@@ -33,8 +42,6 @@ source /path/to/gwt/shell/gwt.zsh
 ```sh
 source /path/to/gwt/shell/gwt.bash
 ```
-
-Make sure `gwt-bin` is available in your PATH.
 
 ---
 
