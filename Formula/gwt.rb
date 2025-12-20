@@ -1,8 +1,8 @@
 class Gwt < Formula
   desc "Interactive TUI helper for git worktree management"
   homepage "https://github.com/tdrk18/homebrew-gwt"
-  url "https://github.com/tdrk18/homebrew-gwt/releases/download/0.1.0/gwt-0.1.0.tar.gz"
-  sha256 "5c79eb63e438584e4fbf4672451c48b51ed49d2d1d78af10c56c3e705e25810d"
+  url "https://github.com/tdrk18/homebrew-gwt/releases/download/v0.1.0/gwt-v0.1.0.tar.gz"
+  sha256 "b46733f295b80ce2ca5ec35f093fa0f371bbec54f8945bcf28fe07b846d661a4"
 
   def install
     bin.install "gwt-bin"
