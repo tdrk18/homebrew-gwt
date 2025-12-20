@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
 
 func detectRepoRoot() (string, error) {
-	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	cmd := execCommand("git", "rev-parse", "--show-toplevel")
 	output, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("not a git repository or git not installed: %v", err)
@@ -20,7 +19,7 @@ func detectRepoRoot() (string, error) {
 }
 
 func listWorktrees() ([]Worktree, error) {
-	cmd := exec.Command("git", "worktree", "list", "--porcelain")
+	cmd := execCommand("git", "worktree", "list", "--porcelain")
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, err
@@ -73,7 +72,7 @@ func listWorktrees() ([]Worktree, error) {
 }
 
 func isWorktreeDirty(path string) bool {
-	cmd := exec.Command("git", "-C", path, "status", "--porcelain")
+	cmd := execCommand("git", "-C", path, "status", "--porcelain")
 	out, err := cmd.Output()
 	if err != nil {
 		return false
@@ -92,7 +91,7 @@ func addWorktree(branch string) error {
 	}
 	args = append(args, branch, wtPath)
 
-	cmd := exec.Command("git", args...)
+	cmd := execCommand("git", args...)
 
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
@@ -107,14 +106,14 @@ func addWorktree(branch string) error {
 func removeWorktree(ctx Context) error {
 	var stderr bytes.Buffer
 
-	cmd1 := exec.Command("git", "worktree", "remove", ctx.Path)
+	cmd1 := execCommand("git", "worktree", "remove", ctx.Path)
 	cmd1.Stderr = &stderr
 	if err := cmd1.Run(); err != nil {
 		return fmt.Errorf("%s", strings.TrimSpace(stderr.String()))
 	}
 
 	if ctx.Branch != "" && !ctx.IsDetached {
-		cmd2 := exec.Command("git", "branch", "-D", ctx.Branch)
+		cmd2 := execCommand("git", "branch", "-D", ctx.Branch)
 		cmd2.Stderr = &stderr
 		if err := cmd2.Run(); err != nil {
 			return fmt.Errorf("%s", strings.TrimSpace(stderr.String()))
@@ -125,7 +124,7 @@ func removeWorktree(ctx Context) error {
 }
 
 func branchExists(branch string) bool {
-	cmd := exec.Command(
+	cmd := execCommand(
 		"git",
 		"show-ref",
 		"--verify",
