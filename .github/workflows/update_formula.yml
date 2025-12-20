@@ -4,6 +4,10 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   update-formula:
     runs-on: ubuntu-slim
@@ -53,7 +57,7 @@ jobs:
             --head "${BRANCH}" \
             --base "main"
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Audit Formula
         run: brew audit --strict Formula/gwt.rb || true
