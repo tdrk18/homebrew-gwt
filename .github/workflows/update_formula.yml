@@ -46,6 +46,7 @@ jobs:
           git switch -c "${BRANCH}"
           git add Formula/gwt.rb
           git commit -m "Update gwt.rb for ${TAG}" || echo "No changes"
+          git push origin "${BRANCH}"
           gh pr create \
             --title "Update gwt.rb for ${TAG}" \
             --body "Automated update of gwt formula for release ${TAG}" \
