@@ -31,7 +31,7 @@ jobs:
           FORMULA="Formula/gwt.rb"
           TAG=${GITHUB_REF_NAME#refs/tags/}
           SHA=${{ steps.sha.outputs.sha256 }}
-          sed -i'' -e "s|url \".*\"|url \"https://github.com/you/gwt/releases/download/${TAG}/gwt-${TAG}.tar.gz\"|" $FORMULA
+          sed -i'' -e "s|url \".*\"|url \"https://github.com/tdrk18/homebrew-gwt/releases/download/${TAG}/gwt-${TAG}.tar.gz\"|" $FORMULA
           sed -i'' -e "s|sha256 \".*\"|sha256 \"$SHA\"|" $FORMULA
 
       - name: Commit and create PR
