@@ -92,8 +92,7 @@ Instead, use the shell function:
 
 Setup example (zsh):
 
-  source ./shell/gwt.zsh
-`)
+  source ./shell/gwt.zsh`)
 }
 
 func detectRepoRoot() (string, error) {
@@ -252,7 +251,7 @@ func addWorktree(branch string) error {
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf(strings.TrimSpace(stderr.String()))
+		return fmt.Errorf("%s", strings.TrimSpace(stderr.String()))
 	}
 
 	return nil
@@ -284,14 +283,14 @@ func removeWorktree(ctx Context) error {
 	cmd1 := exec.Command("git", "worktree", "remove", ctx.Path)
 	cmd1.Stderr = &stderr
 	if err := cmd1.Run(); err != nil {
-		return fmt.Errorf(strings.TrimSpace(stderr.String()))
+		return fmt.Errorf("%s", strings.TrimSpace(stderr.String()))
 	}
 
 	if ctx.Branch != "" && !ctx.IsDetached {
 		cmd2 := exec.Command("git", "branch", "-D", ctx.Branch)
 		cmd2.Stderr = &stderr
 		if err := cmd2.Run(); err != nil {
-			return fmt.Errorf(strings.TrimSpace(stderr.String()))
+			return fmt.Errorf("%s", strings.TrimSpace(stderr.String()))
 		}
 	}
 
