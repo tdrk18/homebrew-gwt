@@ -1,0 +1,19 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":timezone(Asia/Tokyo)"
+  ],
+  "labels": [
+    "dependencies"
+  ],
+  "reviewers": [
+    "tdrk18"
+  ],
+  "packageRules": [
+    {
+      "matchFileNames": ["Formula/gwt.rb"],
+      "enabled": false
+    }
+  ]
+}
