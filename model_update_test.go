@@ -73,7 +73,7 @@ func TestNewBranchInputFlow(t *testing.T) {
 		t.Fatalf("input = %q, want fo", m.InputText)
 	}
 
-	// enter → command発行（cmdの中身までは見ない）
+	// enter → issue command (don't check cmd details)
 	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	if cmd == nil {
 		t.Fatalf("expected addWorktreeCmd, got nil")

@@ -8,7 +8,7 @@ import (
 func relativePath(root, path string) string {
 	rel, err := filepath.Rel(root, path)
 	if err != nil {
-		return path // フォールバック
+		return path // Fallback to original path if relative path calculation fails
 	}
 	return rel
 }

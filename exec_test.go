@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// テスト終了時に必ず戻す
+// Restore execCommand at test completion
 func withFakeExec(t *testing.T, fn func(name string, args ...string) *exec.Cmd) {
 	t.Helper()
 
@@ -47,7 +47,7 @@ detached
 		os.Exit(0)
 
 	case strings.Contains(cmd, "status --porcelain"):
-		// パスで挙動を切り替える
+		// Switch behavior based on path
 		switch {
 		case strings.Contains(cmd, "/clean"):
 			// clean repo
