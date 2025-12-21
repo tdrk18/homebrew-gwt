@@ -20,4 +20,14 @@ jobs:
 
       - name: Run tests
         run: |
-          go test ./...
+          go test ./... -coverprofile=coverage.out
+
+      - name: Show coverage summary
+        run: |
+          go tool cover -func=coverage.out
+
+      - name: Upload coverage to artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage
+          path: coverage.out
