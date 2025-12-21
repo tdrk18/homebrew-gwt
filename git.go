@@ -87,9 +87,14 @@ func addWorktree(branch string) error {
 
 	args := []string{"worktree", "add"}
 	if !branchExists(branch) {
-		args = append(args, "-b")
+		// Create a new branch from HEAD at the given worktree path:
+		// git worktree add -b <branch> <path>
+		args = append(args, "-b", branch, wtPath)
+	} else {
+		// Add a worktree for an existing branch:
+		// git worktree add <path> <branch>
+		args = append(args, wtPath, branch)
 	}
-	args = append(args, branch, wtPath)
 
 	cmd := execCommand("git", args...)
 
@@ -113,6 +118,7 @@ func removeWorktree(ctx Context) error {
 	}
 
 	if ctx.Branch != "" && !ctx.IsDetached {
+		stderr.Reset()
 		cmd2 := execCommand("git", "branch", "-D", ctx.Branch)
 		cmd2.Stderr = &stderr
 		if err := cmd2.Run(); err != nil {
